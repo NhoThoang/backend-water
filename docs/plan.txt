@@ -1,0 +1,229 @@
+🧭 1. Tổng quan hệ thống
+👥 Role
+ADMIN
+Quản lý user
+Quản lý hộ dân
+WORKER (thợ)
+Nhập chỉ số + chụp ảnh
+USER (khách)
+Xem hóa đơn
+Thanh toán (Napas / SePay)
+Xem lịch sử
+🧱 2. Kiến trúc tổng thể
+Flutter App (Worker + User)
+        ↓
+    FastAPI (REST)
+        ↓
+PostgreSQL (data)
+MinIO (images)
+Payment Gateway (Napas / SePay)
+🗂️ 3. Database Design (tối ưu + index đầy đủ)
+3.1 users
+id (PK)
+username (unique, index)
+password_hash
+role (index) -- admin / worker / user
+created_at
+3.2 customers (hộ dân)
+id (PK)
+name
+address
+user_id (FK -> users.id, index) -- liên kết khách
+created_at
+
+👉 1 user = 1 hộ (có thể mở rộng sau)
+
+3.3 meter_readings (chỉ số nước)
+id (PK)
+customer_id (FK, index)
+month (YYYY-MM, index)
+reading
+image_url
+created_by (FK -> users.id)
+created_at
+
+UNIQUE(customer_id, month)
+
+👉 Index quan trọng:
+
+(customer_id, month)
+created_at
+3.4 payments (giao dịch thanh toán)
+id (PK)
+customer_id (FK, index)
+amount
+status (pending, success, failed, index)
+method (napas, sepay)
+transaction_ref (unique, index)
+created_at
+paid_at
+3.5 payment_logs (audit cực quan trọng)
+id (PK)
+payment_id (FK, index)
+raw_request (jsonb)
+raw_response (jsonb)
+status
+created_at
+
+👉 Dùng để:
+
+Debug
+Đối soát ngân hàng
+Tránh dispute
+3.6 system_logs
+id (PK)
+user_id
+action
+metadata (jsonb)
+created_at (index)
+⚡ Index chiến lược (rất quan trọng)
+users.username (unique)
+meter_readings(customer_id, month) (unique)
+payments.transaction_ref (unique)
+payments.status
+logs.created_at
+🧠 4. Backend Structure (FastAPI)
+📁 Project tree
+app/
+├── main.py
+├── core/
+│   ├── config.py
+│   ├── security.py
+│
+├── db/
+│   ├── base.py
+│   ├── session.py
+│
+├── models/
+│   ├── user.py
+│   ├── customer.py
+│   ├── reading.py
+│   ├── payment.py
+│   ├── log.py
+│
+├── schemas/
+│   ├── user.py
+│   ├── reading.py
+│   ├── payment.py
+│
+├── api/
+│   ├── deps.py
+│   ├── routes/
+│       ├── auth.py
+│       ├── users.py
+│       ├── customers.py
+│       ├── readings.py
+│       ├── payments.py
+│
+├── services/
+│   ├── reading_service.py
+│   ├── payment_service.py
+│   ├── upload_service.py
+│
+├── utils/
+│   ├── validator.py
+│   ├── logger.py
+📡 5. API chính
+Auth
+POST /auth/login
+Admin
+POST /users
+GET /users
+POST /customers
+Worker
+GET /customers
+POST /readings
+User
+GET /my-bills
+POST /payments
+Upload
+POST /upload → lưu vào MinIO
+⚠️ 6. Validation logic (critical)
+if current < previous:
+    raise Exception("Invalid reading")
+
+if current - previous > threshold:
+    return warning
+💳 7. Payment flow (Napas / SePay)
+Flow chuẩn
+User tạo payment (status=pending)
+Redirect / QR
+Gateway callback → /payments/webhook
+Verify chữ ký
+Update:
+success / failed
+Ghi vào payment_logs
+🔐 Cực kỳ quan trọng
+Verify signature (bắt buộc)
+Idempotent API (tránh double payment)
+transaction_ref unique
+📱 8. Mobile (Flutter structure)
+lib/
+├── core/
+├── data/
+│   ├── api_client.dart
+│   ├── repositories/
+│
+├── features/
+│   ├── auth/
+│   ├── customer/
+│   ├── reading/
+│   ├── payment/
+│
+├── local/
+│   ├── sqlite_db.dart
+Screen chính
+Worker
+Customer List
+Input Reading
+Camera + preview
+Sync
+User
+Bill list
+Payment screen
+History
+📴 9. Offline-first (rất quan trọng)
+Lưu local:
+readings chưa sync
+ảnh local path
+Sync:
+retry queue
+exponential backoff
+🗄️ 10. MinIO structure
+/bucket
+  /customers/{customer_id}/
+      /2026-05.jpg
+      /2026-06.jpg
+🚀 11. Deployment
+Backend: Docker
+DB: PostgreSQL
+Storage: MinIO
+Reverse proxy: Nginx
+🔥 12. Best practices
+1. Không trust frontend
+
+→ validate backend
+
+2. Log EVERYTHING payment
+
+→ tránh mất tiền
+
+3. Unique constraint
+
+→ tránh duplicate
+
+4. Soft delete (nâng cấp sau)
+✅ 13. Kết luận
+
+Bạn đang build hệ thống:
+
+Water Billing + Field Data Collection + Payment Tracking
+
+Stack bạn chọn:
+
+Flutter
+FastAPI
+PostgreSQL
+MinIO
+
+👉 Rất chuẩn, scale được, có thể thành sản phẩm luôn
