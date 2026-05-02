@@ -1,16 +1,16 @@
-from typing import List
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.models.tariff import Tariff
-from sqlalchemy.orm import Session
 
 class TariffService:
     @staticmethod
-    def calculate_water_amount(db: Session, customer_type: str, consumption: float) -> float:
+    async def calculate_water_amount(db: AsyncSession, customer_type: str, consumption: float) -> float:
         """
         Tính tiền nước dựa trên bậc thang cấu hình trong DB.
         """
-        tariffs = db.query(Tariff).filter(
-            Tariff.customer_type == customer_type
-        ).order_by(Tariff.step_number).all()
+        stmt = select(Tariff).where(Tariff.customer_type == customer_type).order_by(Tariff.step_number)
+        result = await db.execute(stmt)
+        tariffs = result.scalars().all()
         
         if not tariffs:
             # Fallback nếu chưa cấu hình DB

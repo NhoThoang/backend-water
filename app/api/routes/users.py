@@ -3,9 +3,11 @@ import pandas as pd
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.api import deps
 from app.models.user import User, UserRole
+from app.schemas.user import User as UserSchema
 from app.core.security import get_password_hash
 from app.utils.logger import logger
 
@@ -14,7 +16,7 @@ router = APIRouter()
 @router.post("/upload", status_code=201)
 async def upload_users_excel(
     file: UploadFile = File(...),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
     current_admin: User = Depends(deps.get_current_active_admin)
 ):
     """
@@ -45,13 +47,15 @@ async def upload_users_excel(
             continue
             
         # Kiểm tra trùng mã khách hàng (phải khác nhau)
-        existing_user = db.query(User).filter(User.customer_id == c_id).first()
+        stmt = select(User).where(User.customer_id == c_id)
+        result = await db.execute(stmt)
+        existing_user = result.scalars().first()
+        
         if existing_user:
             skipped_count += 1
             continue
             
         # 2. Tên đăng nhập (Có thể có hoặc không)
-        # Vì username không còn là duy nhất trong DB, ta lấy theo Excel hoặc mặc định là c_id
         u_name = str(row.get('tên đăng nhập', '')).strip()
         if not u_name or u_name == 'nan':
             u_name = c_id
@@ -85,7 +89,7 @@ async def upload_users_excel(
         db.add(new_user)
         created_count += 1
         
-    db.commit()
+    await db.commit()
     logger.info(f"Admin {current_admin.username} uploaded Excel. Created: {created_count}, Skipped: {skipped_count}")
     
     return {
@@ -95,14 +99,16 @@ async def upload_users_excel(
     }
 
 @router.get("/export")
-def export_users_excel(
-    db: Session = Depends(deps.get_db),
+async def export_users_excel(
+    db: AsyncSession = Depends(deps.get_db),
     current_admin: User = Depends(deps.get_current_active_admin)
 ):
     """
     Export all customer accounts to Excel.
     """
-    users = db.query(User).filter(User.role == UserRole.USER).all()
+    stmt = select(User).where(User.role == UserRole.USER)
+    result = await db.execute(stmt)
+    users = result.scalars().all()
     
     data = []
     for user in users:
@@ -132,3 +138,118 @@ def export_users_excel(
         headers=headers, 
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
+@router.get("/", response_model=List[UserSchema])
+async def list_users(
+    role: str = None,
+    db: AsyncSession = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+):
+    """
+    List users, optionally filtered by role (Admin only).
+    """
+    stmt = select(User)
+    if role:
+        stmt = stmt.where(User.role == role)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+@router.post("/", status_code=201, response_model=UserSchema)
+async def create_user_manual(
+    user_in: dict,
+    db: AsyncSession = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+):
+    """
+    Create a user manually (Worker or Admin).
+    """
+    username = user_in.get("username")
+    password = user_in.get("password")
+    role = user_in.get("role", UserRole.USER)
+    
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Username and password are required")
+    
+    stmt = select(User).where(User.username == username)
+    result = await db.execute(stmt)
+    if result.scalars().first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+        
+    new_user = User(
+        username=username,
+        password_hash=get_password_hash(password),
+        role=role,
+        phone_number=user_in.get("phone_number"),
+        address=user_in.get("address"),
+        customer_id=user_in.get("customer_id")
+    )
+    
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    return new_user
+
+@router.put("/{user_id}", response_model=UserSchema)
+async def update_user(
+    user_id: int,
+    user_in: dict,
+    db: AsyncSession = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+):
+    """
+    Update a user's information.
+    """
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Update fields
+    if "password" in user_in and user_in["password"]:
+        user.password_hash = get_password_hash(user_in["password"])
+    
+    if "role" in user_in:
+        user.role = user_in["role"]
+        
+    if "phone_number" in user_in:
+        user.phone_number = user_in["phone_number"]
+        
+    if "address" in user_in:
+        user.address = user_in["address"]
+        
+    if "is_active" in user_in:
+        user.is_active = user_in["is_active"]
+
+    if "username" in user_in:
+        # Check if username is already taken by another user
+        stmt_check = select(User).where(User.username == user_in["username"], User.id != user_id)
+        res_check = await db.execute(stmt_check)
+        if res_check.scalars().first():
+            raise HTTPException(status_code=400, detail="Username already taken")
+        user.username = user_in["username"]
+        
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+@router.delete("/{user_id}")
+async def delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+):
+    """
+    Delete a user.
+    """
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    await db.delete(user)
+    await db.commit()
+    return {"message": "User deleted successfully"}

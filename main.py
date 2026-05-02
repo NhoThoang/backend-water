@@ -4,18 +4,15 @@ from app.core.config import settings
 from app.api.routes import auth, customers, readings, payments, reports, uploads, users
 from contextlib import asynccontextmanager
 from app.db.init_db import init_db
-from app.db.session import SessionLocal
+from app.db.session import AsyncSessionLocal
 
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Khởi tạo DB và Admin khi startup
-    db = SessionLocal()
-    try:
-        init_db(db)
-    finally:
-        db.close()
+    # Khởi tạo DB và Admin khi startup (Async)
+    async with AsyncSessionLocal() as db:
+        await init_db(db)
     yield
 
 app = FastAPI(
@@ -27,7 +24,12 @@ app = FastAPI(
 # Set all CORS enabled origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Enum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Enum, JSON
 from sqlalchemy.sql import func
 from app.db.base import Base
 import enum
@@ -15,6 +15,7 @@ class Bill(Base):
     customer_id = Column(Integer, ForeignKey("customers.id"), index=True)
     reading_id = Column(Integer, ForeignKey("meter_readings.id"), unique=True)
     month = Column(String, index=True) # YYYY-MM
+    bill_number = Column(String, unique=True, index=True) # Mã hóa đơn (Vd: HD2026050001)
     
     consumption = Column(Float) # Số khối tiêu thụ (current - last)
     water_amount = Column(Float) # Tiền nước trước thuế
@@ -23,6 +24,7 @@ class Bill(Base):
     previous_debt = Column(Float, default=0) # Nợ cũ cộng dồn
     total_amount = Column(Float) # Tổng cộng cần thanh toán
     
+    calculation_details = Column(JSON, nullable=True) # Chi tiết tính tiền (các bậc)
     status = Column(String, default=BillStatus.UNPAID)
     due_date = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())

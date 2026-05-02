@@ -9,7 +9,7 @@ Tất cả các API đều có tiền tố mặc định là: `http://localhost:
 ### 🔑 Đăng nhập (Login)
 - **Endpoint**: `POST /auth/login`
 - **Quyền truy cập**: Công khai (Public)
-- **Input (Form Data)**:
+- **Input (JSON)**:
     - `username`: Tên đăng nhập (hoặc Mã khách hàng)
     - `password`: Mật khẩu
 - **Output (200 OK)**:
@@ -42,6 +42,36 @@ Tất cả các API đều có tiền tố mặc định là: `http://localhost:
     ```json
     { "message": "Successfully logged out" }
     ```
+
+### 👤 Lấy thông tin cá nhân (Get Profile)
+- **Endpoint**: `GET /auth/me`
+- **Quyền truy cập**: Đã đăng nhập
+- **Output (200 OK)**:
+    ```json
+    {
+      "id": 1,
+      "username": "admin",
+      "customer_id": "C001",
+      "role": "admin",
+      "phone_number": "0987654321",
+      "address": "Hà Nội",
+      "created_at": "2026-05-01T..."
+    }
+    ```
+
+### ✏️ Cập nhật thông tin cá nhân (Update Profile)
+- **Endpoint**: `PATCH /auth/me`
+- **Quyền truy cập**: Đã đăng nhập
+- **Input (JSON)**:
+    ```json
+    {
+      "phone_number": "0123456789",
+      "address": "TP.HCM",
+      "password": "newpassword123"
+    }
+    ```
+- **Output (200 OK)**: Đối tượng User đã cập nhật.
+
 
 ---
 
@@ -102,6 +132,12 @@ Tất cả các API đều có tiền tố mặc định là: `http://localhost:
 - **Quyền**: Admin
 - **Output**: Danh sách các bản ghi `MeterReading` có `is_anomaly=true`.
 
+### 📖 Xem lịch sử cá nhân (My Readings)
+- **Endpoint**: `GET /readings/me`
+- **Quyền truy cập**: Đã đăng nhập (Vai trò User/Customer)
+- **Output**: Danh sách lịch sử ghi chỉ số của chính mình.
+
+
 ---
 
 ## 4. Thanh toán (Payments)
@@ -116,6 +152,12 @@ Tất cả các API đều có tiền tố mặc định là: `http://localhost:
 - **Endpoint**: `GET /payments/history`
 - **Quyền**: Admin (xem tất cả) / User (xem của mình)
 - **Output**: Danh sách các giao dịch thanh toán thành công.
+
+### 💳 Xem thanh toán cá nhân (My Payments)
+- **Endpoint**: `GET /payments/me`
+- **Quyền truy cập**: Đã đăng nhập (Vai trò User/Customer)
+- **Output**: Danh sách lịch sử thanh toán của chính mình.
+
 
 ---
 

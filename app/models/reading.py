@@ -9,8 +9,13 @@ class MeterReading(Base):
     customer_id = Column(Integer, ForeignKey("customers.id"), index=True)
     month = Column(String, index=True) # YYYY-MM
     reading = Column(Float, nullable=False) # Chỉ số mới
+    previous_reading = Column(Float, default=0) # Chỉ số cũ
+    consumption = Column(Float, default=0) # Tiêu thụ
+    
     image_url = Column(String, nullable=True)
     is_anomaly = Column(Boolean, default=False) # Cảnh báo bất thường
+    note = Column(String, nullable=True) # Ghi chú của nhân viên
+    
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

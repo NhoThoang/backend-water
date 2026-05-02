@@ -7,12 +7,15 @@ class MeterReadingBase(BaseModel):
     reading: float
     month: str # YYYY-MM
     image_url: Optional[str] = None
+    note: Optional[str] = None
 
 class MeterReadingCreate(MeterReadingBase):
     pass
 
 class MeterReading(MeterReadingBase):
     id: int
+    previous_reading: float
+    consumption: float
     is_anomaly: bool
     created_by: int
     created_at: datetime
@@ -22,6 +25,7 @@ class MeterReading(MeterReadingBase):
 
 class BillResponse(BaseModel):
     id: int
+    bill_number: Optional[str] = None
     month: str
     consumption: float
     water_amount: float
@@ -31,6 +35,7 @@ class BillResponse(BaseModel):
     total_amount: float
     status: str
     due_date: datetime
+    paid_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
