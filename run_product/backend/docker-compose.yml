@@ -1,6 +1,5 @@
 services:
   fastapi:
-
     image: nhothoang/water-app-backend:latest
     container_name: backend_water_app
     restart: unless-stopped
