@@ -7,15 +7,16 @@ DB_DIR = database_server
 
 # Commands
 DOCKER_COMPOSE = docker compose
+NETWORK_NAME = app_network
 
-.PHONY: all up down pull restart status network
+.PHONY: all up down pull restart status network logs-backend logs-frontend logs-db logs-nginx
 
 # Default target: Start all services
 all: up
 
 # Create network if not exists
 network:
-	@docker network inspect app_network >/dev/null 2>&1 || docker network create app_network
+	@docker network inspect $(NETWORK_NAME) >/dev/null 2>&1 || docker network create $(NETWORK_NAME)
 
 # Pull images for all services
 pull:
@@ -54,3 +55,16 @@ status:
 	cd $(FRONTEND_DIR) && $(DOCKER_COMPOSE) ps
 	@echo "\n=== Nginx Status ==="
 	cd $(NGINX_DIR) && $(DOCKER_COMPOSE) ps
+
+# View logs
+logs-backend:
+	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) logs -f
+
+logs-frontend:
+	cd $(FRONTEND_DIR) && $(DOCKER_COMPOSE) logs -f
+
+logs-db:
+	cd $(DB_DIR) && $(DOCKER_COMPOSE) logs -f
+
+logs-nginx:
+	cd $(NGINX_DIR) && $(DOCKER_COMPOSE) logs -f

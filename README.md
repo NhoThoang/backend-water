@@ -46,8 +46,15 @@ cd backend-water/run_product
 ### Bước 2: Cấu hình biến môi trường
 Mở và kiểm tra cấu hình file `.env` bên trong thư mục `run_product/backend/.env`. Đảm bảo nó trỏ đúng các `POSTGRES_SERVER` và `MINIO_ENDPOINT` tới các docker container tương ứng.
 
-### Bước 3: Chạy hệ thống bằng Makefile "Thần Thánh"
-Đứng tại thư mục `run_product`, chỉ cần gõ 1 lệnh duy nhất:
+### Bước 3: Tạo Docker Network (Bắt buộc)
+Toàn bộ các container trong hệ thống liên lạc với nhau qua mạng nội bộ `app_network`. Bạn **phải** tạo network này trước khi khởi chạy hệ thống:
+
+```bash
+make network
+```
+
+### Bước 4: Chạy hệ thống bằng Makefile "Thần Thánh"
+Đứng tại thư mục `run_product`, chỉ cần gõ lệnh:
 
 ```bash
 make up
@@ -69,6 +76,7 @@ Trong quá trình bảo trì server, thay vì gõ các lệnh Docker Compose dà
 
 | Lệnh | Ý nghĩa |
 |---|---|
+| `make network` | **(Quan trọng)** Tạo network `app_network` cho hệ thống. |
 | `make up` | Khởi chạy toàn bộ hệ thống từ A-Z. |
 | `make down` | Tắt toàn bộ hệ thống (dữ liệu DB không bị mất). |
 | `make restart` | Khởi động lại toàn bộ hệ thống. |
