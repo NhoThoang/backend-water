@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ------------------------
 # Create non-root user
 # ------------------------
-RUN groupadd -r app && useradd -r -g app app
+RUN groupadd -r app && useradd -r -m -d /home/app -g app app
 
 # ------------------------
 # Install Python deps
@@ -45,6 +45,7 @@ RUN chmod +x /entrypoint.sh
 # ------------------------
 # Runtime
 # ------------------------
+RUN mkdir -p /app/logs && chown -R app:app /app /home/app
 USER app
 EXPOSE 8001
 

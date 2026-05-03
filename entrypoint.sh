@@ -17,7 +17,7 @@ db = os.environ['POSTGRES_DB']
 dsn = f"postgresql://{user}:{password}@{host}/{db}"
 
 async def wait_for_db():
-    for i in range(5):
+    for i in range(10):
         try:
             conn = await asyncpg.connect(dsn)
             await conn.close()

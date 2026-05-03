@@ -1,9 +1,6 @@
 services:
   nginx:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: nhothoang/rag_nginx:v1.0.6
+    image: nhothoang/water-app-nginx:latest
     container_name: nginx_proxy
     ports:
       - "80:80"

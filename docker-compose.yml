@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: nhothoang/water-app-backend:latest
-    container_name: fastapi_server
+    container_name: backend_water_app
     restart: unless-stopped
     shm_size: 2g
     ports:

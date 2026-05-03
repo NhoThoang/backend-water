@@ -1,8 +1,9 @@
 # Makefile for managing Docker Compose services
 # Directories
-BACKEND_DIR = run_product/backend
-FRONTEND_DIR = run_product/frond_end
-NGINX_DIR = run_product/nginx
+BACKEND_DIR = backend
+FRONTEND_DIR = frontend
+NGINX_DIR = nginx
+DB_DIR = database_server
 
 # Commands
 DOCKER_COMPOSE = docker compose
@@ -19,6 +20,7 @@ network:
 # Pull images for all services
 pull:
 	@echo "Pulling images..."
+	cd $(DB_DIR) && $(DOCKER_COMPOSE) pull
 	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) pull
 	cd $(FRONTEND_DIR) && $(DOCKER_COMPOSE) pull
 	cd $(NGINX_DIR) && $(DOCKER_COMPOSE) pull
@@ -26,6 +28,7 @@ pull:
 # Start all services
 up: network
 	@echo "Starting services..."
+	cd $(DB_DIR) && $(DOCKER_COMPOSE) up -d
 	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) up -d
 	cd $(FRONTEND_DIR) && $(DOCKER_COMPOSE) up -d
 	cd $(NGINX_DIR) && $(DOCKER_COMPOSE) up -d
@@ -36,13 +39,16 @@ down:
 	cd $(NGINX_DIR) && $(DOCKER_COMPOSE) down
 	cd $(FRONTEND_DIR) && $(DOCKER_COMPOSE) down
 	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) down
+	cd $(DB_DIR) && $(DOCKER_COMPOSE) down
 
 # Restart all services
 restart: down up
 
 # Show status of all services
 status:
-	@echo "=== Backend Status ==="
+	@echo "=== Database Status ==="
+	cd $(DB_DIR) && $(DOCKER_COMPOSE) ps
+	@echo "\n=== Backend Status ==="
 	cd $(BACKEND_DIR) && $(DOCKER_COMPOSE) ps
 	@echo "\n=== Frontend Status ==="
 	cd $(FRONTEND_DIR) && $(DOCKER_COMPOSE) ps
