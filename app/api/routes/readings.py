@@ -31,7 +31,9 @@ async def create_reading(
             customer_id=reading_in.customer_id,
             reading_value=reading_in.reading,
             month=reading_in.month,
-            worker_id=current_user.id
+            worker_id=current_user.id,
+            image_url=reading_in.image_url,
+            note=reading_in.note
         )
         
         if reading.is_anomaly:

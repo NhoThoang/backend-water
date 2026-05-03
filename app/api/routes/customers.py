@@ -19,11 +19,50 @@ async def read_customers(
     current_user = Depends(deps.get_current_user)
 ):
     """
-    Retrieve customers. Accessible by Admin and Worker.
+    Retrieve customers with their latest reading. Accessible by Admin and Worker.
     """
-    stmt = select(CustomerModel).offset(skip).limit(limit)
+    from sqlalchemy import func
+    from app.models.reading import MeterReading
+    
+    # Subquery to get the latest reading for each customer
+    latest_reading_subq = (
+        select(
+            MeterReading.customer_id,
+            MeterReading.reading,
+            MeterReading.month,
+            func.row_number().over(
+                partition_by=MeterReading.customer_id,
+                order_by=MeterReading.month.desc()
+            ).label("rn")
+        )
+        .subquery()
+    )
+
+    stmt = (
+        select(
+            CustomerModel,
+            latest_reading_subq.c.reading,
+            latest_reading_subq.c.month
+        )
+        .outerjoin(
+            latest_reading_subq,
+            (CustomerModel.id == latest_reading_subq.c.customer_id) & (latest_reading_subq.c.rn == 1)
+        )
+        .offset(skip)
+        .limit(limit)
+    )
+    
     result = await db.execute(stmt)
-    customers = result.scalars().all()
+    rows = result.all()
+    
+    customers = []
+    for customer_obj, last_reading, last_month in rows:
+        # Gán thêm dữ liệu vào object trước khi trả về
+        customer_dict = {c.name: getattr(customer_obj, c.name) for c in customer_obj.__table__.columns}
+        customer_dict["last_reading"] = last_reading
+        customer_dict["last_month"] = last_month
+        customers.append(customer_dict)
+        
     return customers
 
 @router.post("/", response_model=Customer)

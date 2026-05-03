@@ -41,4 +41,5 @@ class CustomerInDBBase(CustomerBase):
         from_attributes = True
 
 class Customer(CustomerInDBBase):
-    pass
+    last_reading: Optional[float] = None
+    last_month: Optional[str] = None

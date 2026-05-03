@@ -8,7 +8,16 @@ from datetime import datetime, timedelta
 
 class ReadingService:
     @staticmethod
-    async def add_reading(db: AsyncSession, customer_id: int, reading_value: float, month: str, worker_id: int):
+    async def add_reading(db: AsyncSession, customer_id: int, reading_value: float, month: str, worker_id: int, image_url: str = None, note: str = None):
+        # 0. Kiểm tra xem tháng này đã ghi chưa
+        check_stmt = select(MeterReading).where(
+            MeterReading.customer_id == customer_id,
+            MeterReading.month == month
+        )
+        check_result = await db.execute(check_stmt)
+        if check_result.scalars().first():
+            raise ValueError(f"Hộ dân này đã được ghi chỉ số cho tháng {month}")
+
         # 1. Lấy chỉ số tháng trước
         stmt = select(MeterReading).where(
             MeterReading.customer_id == customer_id,
@@ -20,9 +29,9 @@ class ReadingService:
         last_value = last_reading.reading if last_reading else 0
         
         if reading_value < last_value:
-            raise ValueError("Chỉ số mới không được nhỏ hơn chỉ số cũ")
+            raise ValueError(f"Chỉ số mới ({reading_value}) không được nhỏ hơn chỉ số cũ ({last_value})")
             
-        consumption = reading_value - last_value
+        consumption = round(reading_value - last_value, 2)
         
         # 2. Kiểm tra bất thường (Anomaly Detection)
         is_anomaly = False
@@ -49,6 +58,8 @@ class ReadingService:
             consumption=consumption,
             month=month,
             is_anomaly=is_anomaly,
+            image_url=image_url,
+            note=note,
             created_by=worker_id
         )
         db.add(new_reading)
