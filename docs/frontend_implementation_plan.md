@@ -1,72 +1,64 @@
 # Kế hoạch Triển khai Front-end (Next.js) - Hệ thống Quản lý Nước
 
-Dự án này mục tiêu xây dựng một giao diện Web quản trị hiện đại, chuyên nghiệp dành cho Admin và Nhân viên kỹ thuật, tích hợp với Backend FastAPI.
+Dự án này xây dựng một giao diện Web hiện đại, đa vai trò (Admin, Worker, Customer), tích hợp sâu với Backend FastAPI và MinIO.
 
 ## 1. Công nghệ sử dụng (Tech Stack)
-*   **Framework**: Next.js 14+ (App Router)
-*   **Ngôn ngữ**: **TypeScript** (Bắt buộc để đảm bảo Type-safety cho dữ liệu Billing/User)
-*   **Styling**: **Tailwind CSS v4** (Hiệu suất cao hơn, cấu hình hiện đại qua CSS)
-*   **UI Components**: Shadcn UI (Radix UI) - mang lại cảm giác Premium và tùy biến cao.
-*   **State Management & Data Fetching**: TanStack Query (React Query) v5.
-*   **Form Handling**: React Hook Form + Zod (Validation).
-*   **Icons**: Lucide React.
-*   **Charts**: Recharts (Hiển thị biểu đồ doanh thu, sản lượng).
+*   **Framework**: Next.js 16+ (App Router)
+*   **Ngôn ngữ**: TypeScript
+*   **Styling**: Tailwind CSS v4 + Framer Motion (Animations).
+*   **UI Components**: Custom Glassmorphism UI components.
+*   **State Management**: React Query v5 (Data caching) + Zustand (Auth State).
+*   **Feedback**: **SweetAlert2** (Custom Glassmorphism Theme).
+*   **Charts**: **Recharts** (Optimized for Next.js SSR).
 
-## 2. Các Module Tính năng Chính
+## 2. Phân quyền & Vai trò (RBAC)
 
-### A. Hệ thống Xác thực (Authentication)
-*   Trang Login (Hỗ trợ đăng nhập bằng Username hoặc Mã khách hàng via JSON body).
-*   Quản lý Access Token & Refresh Token (Lưu trữ an toàn trong HttpOnly Cookie hoặc LocalStorage với cơ chế auto-refresh).
-*   Middleware bảo vệ route dựa trên Role (Admin/Worker).
+### 👑 Admin (Quản trị viên)
+- Toàn quyền CRUD: Khách hàng, Nhân viên, Chỉ số, Hóa đơn.
+- Xem báo cáo doanh thu và thống kê hệ thống chi tiết.
+- Quản lý dữ liệu hàng loạt qua Excel (Import/Export).
 
-### B. Dashboard (Trang chủ)
-*   Thống kê tổng quan: Tổng doanh thu tháng, Số hộ dân, Số hóa đơn chưa thanh toán.
-*   Biểu đồ đường: Diễn biến sản lượng nước tiêu thụ 6 tháng gần nhất.
-*   Biểu đồ cột: So sánh doanh thu kế hoạch vs thực tế thu được.
+### 🛠️ Worker (Nhân viên ghi số)
+- Truy cập: Dashboard, Danh sách hộ dân, Ghi chỉ số, Hóa đơn.
+- **Tính năng chính**: Tìm kiếm hộ dân nhanh và bấm nút **"Ghi nước"** để nhập số & tải ảnh đồng hồ tại hiện trường.
+- Không có quyền xóa dữ liệu hoặc quản lý nhân sự.
 
-### C. Quản lý Người dùng & Khách hàng
-*   Danh sách khách hàng (Pagination, Search theo tên/mã).
-*   **Module Excel**:
-    *   Upload file Excel (6 cột) để tạo tài khoản hàng loạt.
-    *   Preview dữ liệu Excel trước khi nhấn "Lưu".
-    *   Export danh sách khách hàng ra Excel.
-*   Thêm/Sửa/Xóa thông tin hộ dân.
+### 👤 Customer (Hộ dân)
+- Truy cập: Dashboard cá nhân, Hóa đơn của tôi, Lịch sử thanh toán của tôi.
+- Chỉ xem được thông tin của chính mình. Toàn bộ các module quản trị đều bị ẩn.
 
-### D. Ghi Chỉ số & Hóa đơn (Meter Reading)
-*   Giao diện nhập chỉ số nhanh cho Worker.
-*   Tích hợp Upload ảnh đồng hồ (MinIO).
-*   Cảnh báo tức thời (Anomaly Detection) nếu chỉ số tăng đột biến (>50%).
-*   Xem lịch sử chỉ số và hóa đơn theo từng hộ.
+## 3. Các Module Tính năng Chính
 
-### E. Quản lý Thanh toán & Báo cáo
-*   Danh sách hóa đơn nợ đọng.
-*   Theo dõi lịch sử thanh toán từ SePay Webhook.
-*   Báo cáo hộ tiêu thụ cao (High Consumption).
+### A. Dashboard & Analytics
+- **Admin**: Xem biểu đồ doanh thu, hiệu suất thu hồi và cảnh báo rò rỉ toàn hệ thống.
+- **Customer**: Xem biểu đồ tiêu thụ 6 tháng của gia đình và thông báo tiền nước cần đóng.
+- **Fix**: Sử dụng `isClient` và `key` cho Recharts để tránh lỗi kích thước biểu đồ.
 
-## 3. Kiến trúc Thư mục (Folder Structure)
-```text
-src/
-├── app/                  # App Router (Pages, Layouts)
-├── components/           # UI Components (shared, ui, forms)
-├── hooks/                # Custom hooks (useAuth, useCustomers, etc.)
-├── lib/                  # Utilities (axios, utils, constants)
-├── services/             # API Calls (auth, customer, reading)
-├── store/                # Global state (Zustand nếu cần)
-└── types/                # TypeScript Interfaces
-```
+### B. Quản lý Hộ dân & Nhân sự
+- Danh sách hộ dân với các Action động (Admin thấy Edit/Delete, Worker thấy Ghi nước).
+- Module Excel tích hợp: Xử lý dữ liệu hàng loạt nhanh chóng.
+- Quản lý tài khoản nhân viên (Chỉ Admin).
 
-## 4. Thiết kế Giao diện (UI/UX)
-*   **Rich Aesthetics**: Sử dụng Glassmorphism cho các Card.
-*   **Dark Mode**: Hỗ trợ đầy đủ Dark/Light mode.
-*   **Responsive**: Tối ưu hóa cho cả Laptop và Máy tính bảng (cho Worker đi hiện trường).
-*   **Micro-animations**: Sử dụng Framer Motion cho các hiệu ứng chuyển trang và modal.
+### C. Ghi số & Xác thực Hình ảnh
+- Form ghi số hiện đại, hỗ trợ chọn hộ dân từ Dropdown thông minh.
+- Chụp ảnh và tải lên MinIO để lưu trữ bằng chứng ghi số.
+- Tự động kích hoạt cảnh báo nếu sản lượng tăng đột biến (>50%).
 
-## 5. Lộ trình thực hiện (Roadmap)
-*   **Giai đoạn 1**: Khởi tạo dự án, Setup Auth logic & Layout chính.
-*   **Giai đoạn 2**: Xây dựng module Quản lý Khách hàng & Excel Integration.
-*   **Giai đoạn 3**: Triển khai module Ghi chỉ số & Hóa đơn.
-*   **Giai đoạn 4**: Xây dựng Dashboard & Báo cáo thống kê.
-*   **Giai đoạn 5**: Optimize hiệu năng, SEO và Deploy.
+### D. Thanh toán & Công nợ
+- Đồng bộ lịch sử thanh toán từ SePay Webhook.
+- Giao diện hóa đơn chuyên nghiệp với trạng thái (Đã trả, Chờ xử lý, Quá hạn).
+
+## 4. Thiết kế & Trải nghiệm (UI/UX)
+- **Aesthetic**: Phong cách **Glassmorphism** (trong suốt, hiện đại) với tông màu Primary (Blue/Emerald).
+- **SweetAlert2**: Đồng nhất ngôn ngữ thiết kế với các thông báo Toast và Modal bo tròn, nhẹ nhàng.
+- **Responsive**: Giao diện tối ưu hoàn hảo cho Tablet/Mobile để nhân viên dễ dàng thao tác tại hiện trường.
+
+## 5. Lộ trình thực hiện
+1.  **Auth & Layout**: Thiết lập cơ chế bảo vệ Route dựa trên Role. (Đã xong)
+2.  **Customer & Staff**: Hoàn thiện CRUD và module Excel. (Đã xong)
+3.  **Readings & MinIO**: Triển khai ghi số và upload ảnh. (Đã xong)
+4.  **Analytics & Optimization**: Hoàn thiện Dashboard và fix lỗi biểu đồ. (Đã xong)
+5.  **Documentation**: Cập nhật tài liệu hướng dẫn và bàn giao. (Đang thực hiện)
 
 ---
-*Người lập kế hoạch: Antigravity AI Assistant*
+*Cập nhật lần cuối: 2026-05-02 by Antigravity*

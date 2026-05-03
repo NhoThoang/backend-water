@@ -1,0 +1,12 @@
+docker save \
+  nhothoang/rag_frontend:latest \
+  nhothoang/back-end-rag-fastapi:latest \
+  nhothoang/embeding-e5:latest \
+| gzip > rag_stack_images.tar.gz
+laod zip file
+gunzip -c rag_stack_images.tar.gz | docker load
+
+
+docker save nhothoang/rag_frontend:latest nhothoang/back-end-rag-fastapi:latest | gzip > rag_stack_images.tar.gz
+#############laod zip file
+gunzip -c rag_stack_images.tar.gz | docker load

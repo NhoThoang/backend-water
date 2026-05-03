@@ -33,7 +33,7 @@ async def upload_meter_image(
         logger.info(f"Image uploaded for customer {customer_id} by {current_user.username}")
         
         return {
-            "image_path": object_name,
+            "image_url": object_name,
             "filename": file.filename
         }
     except Exception as e:

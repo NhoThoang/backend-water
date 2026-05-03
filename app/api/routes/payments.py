@@ -46,7 +46,7 @@ async def get_payment_history(
     """
     stmt = select(Payment).join(Bill)
     
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "worker"]:
         # Tìm customer_id từ user_id
         stmt_customer = select(Customer).where(Customer.user_id == current_user.id)
         res_customer = await db.execute(stmt_customer)

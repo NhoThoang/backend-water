@@ -1,0 +1,22 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nhothoang/rag_nginx:v1.0.6
+    container_name: nginx_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - nginx_data:/var/cache/nginx
+    networks:
+      - app_network
+    restart: unless-stopped
+volumes:
+  nginx_data:
+    driver: local
+    name: nginx_data
+networks:
+  app_network:
+    driver: bridge
+    external: true

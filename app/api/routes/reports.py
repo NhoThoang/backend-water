@@ -15,12 +15,23 @@ router = APIRouter()
 @router.get("/unpaid", response_model=List[BillResponse])
 async def get_unpaid_bills(
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_active_staff)
+    current_user = Depends(deps.get_current_user)
 ):
     """
-    Lấy danh sách các hóa đơn chưa thanh toán (Nợ đọng).
+    Lấy danh sách các hóa đơn chưa thanh toán. 
+    Staff xem toàn bộ, Customer chỉ xem của mình.
     """
     stmt = select(Bill).where(Bill.status != BillStatus.PAID)
+    
+    if current_user.role not in ["admin", "worker"]:
+        # Tìm customer_id từ user_id
+        stmt_customer = select(Customer).where(Customer.user_id == current_user.id)
+        res_customer = await db.execute(stmt_customer)
+        customer = res_customer.scalars().first()
+        if not customer:
+            return []
+        stmt = stmt.where(Bill.customer_id == customer.id)
+        
     result = await db.execute(stmt)
     return result.scalars().all()
 
